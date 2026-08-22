@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     LLM_API_KEY: str = ""
     LLM_BASE_URL: Optional[str] = None
     LLM_MODEL: str = "gpt-4o-mini"
+    RERANKER_MODEL: str = "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1"
     
     DATA_DIR: str = "./data"
     INDEX_DIR: str = "./data/indexes"

@@ -59,8 +59,8 @@ def test_min_max_normalize_constant():
 
 def test_retrieve_hybrid_determinism_and_deduplication():
     # Calling retrieve_hybrid twice with same parameters should return exactly same ordered candidates
-    candidates1 = retrieve_hybrid("test query", top_k=5)
-    candidates2 = retrieve_hybrid("test query", top_k=5)
+    candidates1, _ = retrieve_hybrid("test query", top_k=5)
+    candidates2, _ = retrieve_hybrid("test query", top_k=5)
     
     assert len(candidates1) > 0
     assert len(candidates1) == len(candidates2)
@@ -69,8 +69,8 @@ def test_retrieve_hybrid_determinism_and_deduplication():
         assert c1['strategy'] == "HYBRID_WEIGHTED"
 
 def test_retrieve_rrf_determinism():
-    candidates1 = retrieve_rrf("test query", top_k=5)
-    candidates2 = retrieve_rrf("test query", top_k=5)
+    candidates1, _ = retrieve_rrf("test query", top_k=5)
+    candidates2, _ = retrieve_rrf("test query", top_k=5)
     
     assert len(candidates1) > 0
     assert len(candidates1) == len(candidates2)
@@ -83,7 +83,7 @@ def test_duplicate_removal_logic():
     # If our system had logic to remove duplicate text, it would be here.
     # Currently hybrid_retriever removes duplicate chunk_ids.
     # Let's ensure candidate list doesn't have duplicate chunk_ids
-    candidates = retrieve_hybrid("test query", top_k=10)
+    candidates, _ = retrieve_hybrid("test query", top_k=10)
     seen_ids = set()
     for c in candidates:
         assert c['chunk_id'] not in seen_ids

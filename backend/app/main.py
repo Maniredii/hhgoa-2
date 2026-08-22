@@ -25,7 +25,7 @@ async def add_process_time_header(request: Request, call_next):
     return response
 
 # Include routers
-app.include_router(routes_health.router, prefix="/api", tags=["health"])
+app.include_router(routes_health.router, prefix="", tags=["health"])
 app.include_router(routes_voice.router, prefix="/api", tags=["voice"])
 app.include_router(routes_query.router, prefix="/api", tags=["query"])
 app.include_router(routes_benchmark.router, prefix="/api", tags=["benchmark"])

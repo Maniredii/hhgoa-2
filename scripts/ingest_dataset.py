@@ -96,8 +96,8 @@ def main():
     setup_schema(conn)
     
     try:
-        logger.info(f"Loading dataset ai4bharat/MSMARCO-XI for language {args.language}")
-        ds = load_dataset('ai4bharat/MSMARCO-XI', args.language, split=args.split, streaming=True)
+        logger.info(f"Loading dataset ai4bharat/MSMARCO-XI (default split) filtering later for {args.language}")
+        ds = load_dataset('ai4bharat/MSMARCO-XI', split=args.split, streaming=True)
         
         if args.sample_strategy == 'random':
             # Streaming datasets don't easily support shuffle without a buffer

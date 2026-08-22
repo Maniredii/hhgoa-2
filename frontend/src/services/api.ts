@@ -1,12 +1,12 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
-export const sendVoiceQuery = async (audioBlob: Blob) => {
+export const transcribeAudio = async (audioBlob: Blob) => {
     const formData = new FormData();
     formData.append('file', audioBlob, 'audio.webm'); // Using webm for browser recording
     
-    const response = await axios.post(`${API_BASE}/voice`, formData, {
+    const response = await axios.post(`${API_BASE}/voice/transcribe`, formData, {
         headers: {
             'Content-Type': 'multipart/form-data'
         }

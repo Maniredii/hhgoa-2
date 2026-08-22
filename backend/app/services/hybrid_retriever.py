@@ -60,12 +60,15 @@ def _build_candidate(chunk_id: str, score: float, strategy: str, exact_scores: D
         'metadata': chunk_data.get('metadata', {})
     }
 
-def retrieve_dense(query: str, top_k: int = 20) -> Dict[str, float]:
+def retrieve_dense(query: str, top_k: int = 20):
     start_time = time.time()
     if not _faiss_index or not _embedding_model:
-        return {}, 0.0
+        return {}, 0.0, 0.0
         
     query_emb = _embedding_model.encode([query], normalize_embeddings=True)
+    emb_time = time.time() - start_time
+    
+    start_faiss = time.time()
     D, I = _faiss_index.search(query_emb, top_k * 2) # Get more to allow filtering
     
     results = {}
@@ -75,7 +78,8 @@ def retrieve_dense(query: str, top_k: int = 20) -> Dict[str, float]:
             chunk_id = ids_list[idx]
             results[chunk_id] = float(score)
             
-    return results, time.time() - start_time
+    faiss_time = time.time() - start_faiss
+    return results, emb_time, faiss_time
 
 def retrieve_bm25(query: str, top_k: int = 20) -> Dict[str, float]:
     start_time = time.time()
@@ -109,8 +113,13 @@ def _min_max_normalize(scores: Dict[str, float]) -> Dict[str, float]:
 def retrieve_hybrid(query: str, top_k: int = 20, dense_weight: float = 0.65, bm25_weight: float = 0.35) -> List[Dict]:
     load_indexes()
     
-    dense_scores, dense_time = retrieve_dense(query, top_k)
-    bm25_scores, bm25_time = retrieve_bm25(query, top_k)
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        future_dense = executor.submit(retrieve_dense, query, top_k)
+        future_bm25 = executor.submit(retrieve_bm25, query, top_k)
+        
+        dense_scores, emb_time, faiss_time = future_dense.result()
+        bm25_scores, bm25_time = future_bm25.result()
     
     start_fusion = time.time()
     
@@ -152,15 +161,27 @@ def retrieve_hybrid(query: str, top_k: int = 20, dense_weight: float = 0.65, bm2
         candidates.append(cand)
         
     fusion_time = time.time() - start_fusion
-    logger.info(f"Retrieval latency - Dense: {dense_time:.4f}s, BM25: {bm25_time:.4f}s, Fusion: {fusion_time:.4f}s")
+    logger.info(f"Retrieval latency - Emb: {emb_time:.4f}s, FAISS: {faiss_time:.4f}s, BM25: {bm25_time:.4f}s, Fusion: {fusion_time:.4f}s")
     
-    return candidates
+    metrics = {
+        'embedding_ms': emb_time * 1000,
+        'faiss_ms': faiss_time * 1000,
+        'bm25_ms': bm25_time * 1000,
+        'fusion_ms': fusion_time * 1000
+    }
+    
+    return candidates, metrics
 
 def retrieve_rrf(query: str, top_k: int = 20, k: int = 60) -> List[Dict]:
     load_indexes()
     
-    dense_scores, dense_time = retrieve_dense(query, top_k)
-    bm25_scores, bm25_time = retrieve_bm25(query, top_k)
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+        future_dense = executor.submit(retrieve_dense, query, top_k)
+        future_bm25 = executor.submit(retrieve_bm25, query, top_k)
+        
+        dense_scores, emb_time, faiss_time = future_dense.result()
+        bm25_scores, bm25_time = future_bm25.result()
     
     start_fusion = time.time()
     
@@ -200,6 +221,13 @@ def retrieve_rrf(query: str, top_k: int = 20, k: int = 60) -> List[Dict]:
         candidates.append(cand)
         
     fusion_time = time.time() - start_fusion
-    logger.info(f"RRF Retrieval latency - Dense: {dense_time:.4f}s, BM25: {bm25_time:.4f}s, Fusion: {fusion_time:.4f}s")
+    logger.info(f"RRF Retrieval latency - Emb: {emb_time:.4f}s, FAISS: {faiss_time:.4f}s, BM25: {bm25_time:.4f}s, Fusion: {fusion_time:.4f}s")
     
-    return candidates
+    metrics = {
+        'embedding_ms': emb_time * 1000,
+        'faiss_ms': faiss_time * 1000,
+        'bm25_ms': bm25_time * 1000,
+        'fusion_ms': fusion_time * 1000
+    }
+    
+    return candidates, metrics

@@ -1,0 +1,80 @@
+[
+  {
+    "strategy": "Fixed only",
+    "recall": 1.0,
+    "recall@5": 1.0,
+    "recall@10": 1.0,
+    "MRR": 1.0,
+    "Hit Rate": 1.0,
+    "latency": 43.980042139689125,
+    "average candidates": 10.0,
+    "context relevance": 0.6265873015873016,
+    "grounding score": 1.0,
+    "abstention accuracy": 1.0
+  },
+  {
+    "strategy": "Semantic only",
+    "recall": 1.0,
+    "recall@5": 1.0,
+    "recall@10": 1.0,
+    "MRR": 1.0,
+    "Hit Rate": 1.0,
+    "latency": 33.23162926567925,
+    "average candidates": 10.0,
+    "context relevance": 0.6404761904761904,
+    "grounding score": 1.0,
+    "abstention accuracy": 1.0
+  },
+  {
+    "strategy": "BM25 only",
+    "recall": 1.0,
+    "recall@5": 1.0,
+    "recall@10": 1.0,
+    "MRR": 1.0,
+    "Hit Rate": 1.0,
+    "latency": 0.2215968237982856,
+    "average candidates": 20.0,
+    "context relevance": 0.6404761904761904,
+    "grounding score": 1.0,
+    "abstention accuracy": 1.0
+  },
+  {
+    "strategy": "Dense only",
+    "recall": 1.0,
+    "recall@5": 1.0,
+    "recall@10": 1.0,
+    "MRR": 1.0,
+    "Hit Rate": 1.0,
+    "latency": 29.374255074395073,
+    "average candidates": 20.0,
+    "context relevance": 0.6404761904761904,
+    "grounding score": 1.0,
+    "abstention accuracy": 1.0
+  },
+  {
+    "strategy": "Hybrid",
+    "recall": 1.0,
+    "recall@5": 1.0,
+    "recall@10": 1.0,
+    "MRR": 1.0,
+    "Hit Rate": 1.0,
+    "latency": 61.48476070827908,
+    "average candidates": 10.0,
+    "context relevance": 0.6404761904761904,
+    "grounding score": 1.0,
+    "abstention accuracy": 1.0
+  },
+  {
+    "strategy": "Hybrid + reranking",
+    "recall": 1.0,
+    "recall@5": 1.0,
+    "recall@10": 1.0,
+    "MRR": 1.0,
+    "Hit Rate": 1.0,
+    "latency": 60602.70184940762,
+    "average candidates": 5.0,
+    "context relevance": 0.6265873015873016,
+    "grounding score": 1.0,
+    "abstention accuracy": 1.0
+  }
+]

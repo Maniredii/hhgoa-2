@@ -1,9 +1,10 @@
 from fastapi import APIRouter
-from app.models.schemas import QueryRequest, RAGResponse
-from app.core.orchestrator import process_query
+from app.models.schemas import QueryRequest, UnifiedRAGResponse
+from app.core.orchestrator import RAGOrchestrator
 
 router = APIRouter()
 
-@router.post("/query", response_model=RAGResponse)
+@router.post("/query", response_model=UnifiedRAGResponse)
 async def query_endpoint(req: QueryRequest):
-    return await process_query(req)
+    orchestrator = RAGOrchestrator(raw_query=req.query, language=req.language)
+    return await orchestrator.run()
