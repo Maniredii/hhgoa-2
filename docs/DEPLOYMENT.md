@@ -14,7 +14,7 @@ Render is an excellent platform for hosting Python FastAPI backends.
    - **Name**: `vaanirag-backend` (or similar)
    - **Language**: Python
    - **Root Directory**: `backend`
-   - **Build Command**: `pip install -r requirements.txt`
+   - **Build Command**: `pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt`
    - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT` (Render dynamically injects the port variable)
 5. Scroll down to **Advanced** -> **Environment Variables** and add:
    - `SARVAM_API_KEY`
