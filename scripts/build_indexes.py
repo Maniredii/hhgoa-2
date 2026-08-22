@@ -1,64 +1,94 @@
 import os
-import sqlite3
-import pickle
+import json
+import logging
+import argparse
+import numpy as np
 import faiss
-from sentence_transformers import SentenceTransformer
+import pickle
 from rank_bm25 import BM25Okapi
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data')
-INDEX_DIR = os.path.join(DATA_DIR, 'indexes')
-DB_PATH = os.path.join(DATA_DIR, 'metadata.db')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
-def build_indexes():
-    os.makedirs(INDEX_DIR, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
+def parse_args():
+    parser = argparse.ArgumentParser(description="Build FAISS and BM25 indexes.")
+    parser.add_argument('--index_type', type=str, default='flat', choices=['flat', 'hnsw'], help='FAISS index type')
+    return parser.parse_args()
+
+def tokenize(text: str):
+    # A simple whitespace and punctuation tokenizer for multilingual BM25.
+    # In production, use a more sophisticated tokenizer (e.g., IndicNLP) if needed.
+    import re
+    text = text.lower()
+    tokens = re.split(r'\W+', text)
+    return [t for t in tokens if t]
+
+def main():
+    args = parse_args()
     
-    # Check if table exists
-    try:
-        cursor.execute("SELECT chunk_id, text FROM chunks")
-        rows = cursor.fetchall()
-    except sqlite3.OperationalError:
-        print("No chunks table found. Please run ingest_data.py first.")
+    emb_dir = os.path.join(os.path.dirname(__file__), '..', 'data', 'embeddings')
+    chunks_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'chunks', 'chunks.jsonl')
+    index_dir = os.path.join(os.path.dirname(__file__), '..', 'data', 'indexes')
+    os.makedirs(index_dir, exist_ok=True)
+    
+    emb_path = os.path.join(emb_dir, 'embeddings.npy')
+    ids_path = os.path.join(emb_dir, 'chunk_ids.json')
+    
+    if not os.path.exists(emb_path) or not os.path.exists(chunks_path):
+        logger.error("Embeddings or chunks not found. Run build_embeddings.py first.")
         return
-
-    if not rows:
-        print("No data found in chunks table.")
-        return
-
-    chunk_ids = [row[0] for row in rows]
-    texts = [row[1] for row in rows]
-
-    print(f"Building index for {len(texts)} chunks...")
-
-    # 1. Build FAISS Vector Index
-    print("Loading embedding model...")
-    # using a multilingual model since it's an Indic dataset
-    model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2') 
-    print("Encoding texts...")
-    embeddings = model.encode(texts, show_progress_bar=True)
-    
-    dim = embeddings.shape[1]
-    index = faiss.IndexFlatL2(dim)
-    index.add(embeddings)
-    
-    faiss.write_index(index, os.path.join(INDEX_DIR, 'vector.faiss'))
-    
-    # Save chunk IDs mapping
-    with open(os.path.join(INDEX_DIR, 'chunk_ids.pkl'), 'wb') as f:
-        pickle.dump(chunk_ids, f)
         
-    print("FAISS index built and saved.")
-
-    # 2. Build BM25 Index
-    print("Building BM25 index...")
-    tokenized_texts = [text.split() for text in texts]
-    bm25 = BM25Okapi(tokenized_texts)
+    logger.info("Loading embeddings...")
+    embeddings = np.load(emb_path)
     
-    with open(os.path.join(INDEX_DIR, 'bm25.pkl'), 'wb') as f:
+    with open(ids_path, 'r', encoding='utf-8') as f:
+        chunk_ids = json.load(f)
+        
+    d = embeddings.shape[1]
+    logger.info(f"Loaded {embeddings.shape[0]} embeddings of dimension {d}.")
+    
+    # Build FAISS Index
+    logger.info(f"Building FAISS {args.index_type} index...")
+    if args.index_type == 'flat':
+        # Inner Product for Cosine Similarity (assuming embeddings are normalized)
+        faiss_index = faiss.IndexFlatIP(d)
+    else:
+        # HNSW for faster approximate search
+        faiss_index = faiss.IndexHNSWFlat(d, 32)
+        faiss_index.hnsw.efConstruction = 40
+        
+    faiss_index.add(embeddings)
+    
+    faiss_out_path = os.path.join(index_dir, 'vector.faiss')
+    faiss.write_index(faiss_index, faiss_out_path)
+    logger.info(f"FAISS index saved to {faiss_out_path}")
+    
+    # Build BM25 Index
+    logger.info("Building BM25 index...")
+    chunks = []
+    with open(chunks_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            if line.strip():
+                chunks.append(json.loads(line))
+                
+    # Create mapping dictionary for quick lookup during retrieval
+    mapping = {c['id']: c for c in chunks}
+    
+    # Tokenize corpus
+    tokenized_corpus = [tokenize(c['text']) for c in chunks]
+    bm25 = BM25Okapi(tokenized_corpus)
+    
+    bm25_out_path = os.path.join(index_dir, 'bm25.pkl')
+    with open(bm25_out_path, 'wb') as f:
         pickle.dump(bm25, f)
-        
-    print("BM25 index built and saved.")
+    logger.info(f"BM25 index saved to {bm25_out_path}")
+    
+    mapping_path = os.path.join(index_dir, 'chunk_mapping.pkl')
+    with open(mapping_path, 'wb') as f:
+        pickle.dump({'mapping': mapping, 'ids_list': chunk_ids}, f)
+    logger.info(f"Chunk mapping saved to {mapping_path}")
+    
+    logger.info("Indexing complete!")
 
-if __name__ == "__main__":
-    build_indexes()
+if __name__ == '__main__':
+    main()
