@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://hhgoa-2-fx6c.onrender.com/api';
 
 export const transcribeAudio = async (audioBlob: Blob) => {
     const formData = new FormData();
