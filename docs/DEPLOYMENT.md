@@ -15,7 +15,7 @@ Render is an excellent platform for hosting Python FastAPI backends.
    - **Language**: Python
    - **Root Directory**: `backend`
    - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port 10000` (Render exposes port 10000 by default)
+   - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT` (Render dynamically injects the port variable)
 5. Scroll down to **Advanced** -> **Environment Variables** and add:
    - `SARVAM_API_KEY`
    - `LLM_PROVIDER` (e.g., `openai`)
